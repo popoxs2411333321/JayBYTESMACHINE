@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Load Poppins to match local font and add preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>McDo Vending Machine</title>
+  <style>
+    /* Minimal reset + consistent box-sizing so hosted site matches local */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    /* Ensure same font loaded */
+    body { font-family: 'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    body {
+      background: linear-gradient(135deg, #ffd5a5, #ffb347);
+      margin: 0;
+      padding: 0;
+      color: #2c3e50;
+    }
+
+    .machine-header {
+      text-align: center;
+      background: #c8102e;
+      padding: 20px;
+      border-radius: 0 0 20px 20px;
+      color: #fff;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .vending-machine {
+      max-width: 900px;
+      margin: 40px auto;
+      background: #fff8f0;
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .category h2 {
+      color: #c8102e;
+      border-left: 5px solid #f4c430;
+      padding-left: 10px;
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+    }
+
+    .product {
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .product:hover {
+      transform: scale(1.05);
+    }
+
+    .product-name {
+      font-weight: 600;
+      color: #333;
+      margin-top: 10px;
+    }
+
+    .product-price {
+      color: #c8102e;
+      font-weight: 500;
+      margin-top: 5px;
+    }
+
+    .add-btn {
+      margin-top: 10px;
+      background: #f4c430;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .add-btn:hover {
+      background: #ffda6a;
+      transform: scale(1.05);
+    }
+
+    /* Popup Animation */
+    .popup {
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 20px 40px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      display: none;
+      font-weight: 600;
+      color: #333;
+      animation: pop 0.4s ease;
+      z-index: 100;
+    }
+
+    @keyframes pop {
+      from { transform: translate(-50%, -60%) scale(0.5); opacity: 0; }
+      to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    /* Checkout Section */
+    .checkout-section {
+      display: none;
+      text-align: center;
+    }
+
+    .checkout-list {
+      text-align: left;
+      margin: 20px auto;
+      max-width: 400px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+
+    .coin-animation {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      font-size: 2rem;
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0);
+      animation: dropCoin 1s ease-out;
+      z-index: 200;
+    }
+
+    @keyframes dropCoin {
+      0% { opacity: 0; transform: translate(-50%, -200%) scale(0.5); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+      100% { opacity: 0; transform: translate(-50%, 100%) scale(0.8); }
+    }
+
+    .btn {
+      padding: 10px 20px;
+      background: #c8102e;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      margin: 10px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: #e63c47;
+    }
+
+    /* Pay button (yellow) */
+    .pay-btn {
+      background: #ffc107; /* yellow */
+      color: #2c3e50;
+    }
+
+    .pay-btn:hover {
+      background: #ffb300;
+      color: #2c3e50;
+    }
+
+    .balance-display {
+      margin-top: 10px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .receipt {
+      text-align: left;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px auto;
+      max-width: 400px;
+      display: none;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="machine-header">🍟 McDo Vending Machine 🍔</div>
+
+  <!-- MENU PAGE -->
+  <div class="vending-machine" id="menuPage">
+    <div class="category">
+      <h2>🍔 Burgers</h2>
+      <div class="product-grid">
+        <div class="product" data-name="Big Mac" data-price="120">
+          🍔<div class="product-name">Big Mac</div>
+          <div class="product-price">$120</div>
+          <button class="add-btn" onclick="addToCart('Big Mac',120)">Add to Cart</button>
+        </div>
+        <div class="product" data-name="Cheeseburger" data-price="90">
+          🍔<div class="product-name">Cheeseburger</div>
+          <div class="product-price">$90</div>
+          <button class="add-btn" onclick="addToCart('Cheeseburger',90)">Add to Cart</button>
+        </div>
+
+        <div class="product" data-name="Chicken Burger" data-price="110">
+          🍗<div class="product-name">Chicken Burger</div>
+          <div class="product-price">$110</div>
+          <button class="add-btn" onclick="addToCart('Chicken Burger',110)">Add to Cart</button>
+        </div>
+
+        <div class="product" data-name="Double Cheese Burger" data-price="150">
+          🧀🍔<div class="product-name">Double Cheese Burger</div>
+          <div class="product-price">$150</div>
+          <button class="add-btn" onclick="addToCart('Double Cheese Burger',150)">Add to Cart</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="category">
+      <h2>🍟 Sides</h2>
+      <div class="product-grid">
+        <div class="product" data-name="Fries" data-price="60">
+          🍟<div class="product-name">Fries</div>
+          <div class="product-price">$60</div>
+          <button class="add-btn" onclick="addToCart('Fries',60)">Add to Cart</button>
+        </div>
+        <div class="product" data-name="Chicken Nuggets" data-price="80">
+          🍗<div class="product-name">Chicken Nuggets</div>
+          <div class="product-price">$80</div>
+          <button class="add-btn" onclick="addToCart('Chicken Nuggets',80)">Add to Cart</button>
+        </div>
+
+        <div class="product" data-name="Hash Brown" data-price="40">
+          🥔<div class="product-name">Hash Brown</div>
+          <div class="product-price">$40</div>
+          <button class="add-btn" onclick="addToCart('Hash Brown',40)">Add to Cart</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="category">
+      <h2>🥤 Drinks</h2>
+      <div class="product-grid">
+        <div class="product" data-name="Coke" data-price="35">
+          🥤<div class="product-name">Coke</div>
+          <div class="product-price">$35</div>
+          <button class="add-btn" onclick="addToCart('Coke',35)">Add to Cart</button>
+        </div>
+        <div class="product" data-name="Iced Coffee" data-price="55">
+          ☕<div class="product-name">Iced Coffee</div>
+          <div class="product-price">$55</div>
+          <button class="add-btn" onclick="addToCart('Iced Coffee',55)">Add to Cart</button>
+        </div>
+
+        <div class="product" data-name="Sprite" data-price="35">
+          🥤🍋<div class="product-name">Sprite</div>
+          <div class="product-price">$35</div>
+          <button class="add-btn" onclick="addToCart('Sprite',35)">Add to Cart</button>
+        </div>
+
+        <div class="product" data-name="Fanta" data-price="35">
+          🥤🍊<div class="product-name">Fanta</div>
+          <div class="product-price">$35</div>
+          <button class="add-btn" onclick="addToCart('Fanta',35)">Add to Cart</button>
+        </div>
+
+        <div class="product" data-name="Iced Tea" data-price="40">
+          🧊🍵<div class="product-name">Iced Tea</div>
+          <div class="product-price">$40</div>
+          <button class="add-btn" onclick="addToCart('Iced Tea',40)">Add to Cart</button>
+        </div>
+
+        <div class="product" data-name="Pepsi" data-price="35">
+          🥤<div class="product-name">Pepsi</div>
+          <div class="product-price">$35</div>
+          <button class="add-btn" onclick="addToCart('Pepsi',35)">Add to Cart</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:30px;">
+      <button class="btn" onclick="goToCheckout()">🛒 Go to Checkout</button>
+    </div>
+  </div>
+
+  <!-- CHECKOUT PAGE -->
+  <div class="vending-machine checkout-section" id="checkoutPage">
+    <h2>🧾 Checkout</h2>
+    <div class="checkout-list" id="checkoutList"></div>
+    <div class="balance-display">Insert Amount: 
+      <div style="margin-top:8px;">
+        <button class="btn" onclick="insertDenom(1)">1</button>
+        <button class="btn" onclick="insertDenom(5)">5</button>
+        <button class="btn" onclick="insertDenom(10)">10</button>
+        <button class="btn" onclick="insertDenom(100)">100</button>
+        <button class="btn" onclick="insertDenom(500)">500</button>
+        <button class="btn" onclick="insertDenom(1000)">1000</button>
+        <button class="btn pay-btn" onclick="pay()">Pay</button>
+      </div>
+      <div id="balanceText" style="margin-top:8px;">Balance: $0</div>
+    </div>
+    <div class="balance-display">Change: $<span id="change">0</span></div>
+    <div class="receipt" id="receipt"></div>
+  </div>
+
+  <div class="popup" id="popup">Added to Cart!</div>
+
+  <script>
+    let cart = [];
+    let balance = 0;
+    let total = 0;
+
+    function addToCart(name, price) {
+      cart.push({name, price});
+      const popup = document.getElementById("popup");
+      popup.style.display = "block";
+      setTimeout(() => { popup.style.display = "none"; }, 1000);
+    }
+
+    function goToCheckout() {
+      if (cart.length === 0) return alert("Your cart is empty!");
+      document.getElementById("menuPage").style.display = "none";
+      document.getElementById("checkoutPage").style.display = "block";
+      const checkoutList = document.getElementById("checkoutList");
+      checkoutList.innerHTML = "";
+      total = 0;
+      cart.forEach(item => {
+        checkoutList.innerHTML += `<div>${item.name} - $${item.price}</div>`;
+        total += item.price;
+      });
+      checkoutList.innerHTML += `<hr><strong>Total: $${total}</strong>`;
+    }
+
+    function insertMoney() {
+      // legacy - keyboard input removed. Use insertDenom(amount) buttons instead.
+    }
+
+    function insertDenom(amount) {
+      if (typeof amount !== 'number' || amount <= 0) return;
+      balance += amount;
+      updateBalanceDisplay();
+      animateCoin();
+    }
+
+    function updateBalanceDisplay() {
+      const el = document.getElementById('balanceText');
+      if (el) el.innerText = `Balance: $${balance}`;
+    }
+
+    function pay() {
+      const receipt = document.getElementById("receipt");
+      if (balance < total) {
+        alert("Not enough money!");
+        return;
+      }
+      const change = balance - total;
+      document.getElementById("change").innerText = change;
+      receipt.style.display = "block";
+      receipt.innerHTML = `<h3>🧾 Receipt</h3>`;
+      cart.forEach(item => {
+        receipt.innerHTML += `<div>${item.name} - $${item.price}</div>`;
+      });
+      receipt.innerHTML += `<hr><strong>Total: $${total}</strong><br>`;
+      receipt.innerHTML += `<div>Money Inserted: $${balance}</div>`;
+      receipt.innerHTML += `<div>Change: $${change}</div>`;
+      receipt.innerHTML += `<p>Thank you for ordering at McDonald's 🍔</p>`;
+
+      setTimeout(() => {
+        resetMachine();
+      }, 5000);
+    }
+
+    function animateCoin() {
+      const coin = document.createElement("div");
+      coin.className = "coin-animation";
+      coin.textContent = "🪙";
+      document.body.appendChild(coin);
+      setTimeout(() => document.body.removeChild(coin), 1000);
+    }
+
+    function resetMachine() {
+      balance = 0;
+      total = 0;
+      cart = [];
+      document.getElementById("checkoutPage").style.display = "none";
+      document.getElementById("menuPage").style.display = "block";
+      document.getElementById("receipt").style.display = "none";
+      document.getElementById("change").innerText = "0";
+      updateBalanceDisplay();
+    }
+  </script>
+</body>
+</html>
